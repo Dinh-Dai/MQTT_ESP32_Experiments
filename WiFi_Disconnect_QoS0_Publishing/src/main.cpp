@@ -12,18 +12,20 @@
 
 namespace
 {
-    const char *ssid = WiFiSecrets::ssid;
-    const char *password = WiFiSecrets::pass;
+    const char *ssid = "Thai Nguyen Viettel"; 
+    const char *password = "votuyen21"; 
     const char *echo_topic = "esp32/echo_test";
     unsigned int publish_count = 0;
-    uint16_t keepAlive = 15;    // seconds (default is 15)
-    uint16_t socketTimeout = 5; // seconds (default is 15)
+    uint16_t keepAlive = 15;    
+    uint16_t socketTimeout = 5;
 }
 
 WiFiClientSecure tlsClient;
 PubSubClient mqttClient(tlsClient);
+Ticker mqttPublishTicker;
 
-Ticker mqttPulishTicker;
+const char *mqttBroker = "a13dcfcaabef4c32acf611db7d43e897.s1.eu.hivemq.cloud";
+const int mqttPort = 8883;
 
 void mqttPublish()
 {
@@ -50,7 +52,8 @@ void mqttReconnect()
         Serial.println("Attempting MQTT connection...");
         String client_id = "esp32-client-";
         client_id += String(WiFi.macAddress());
-        if (mqttClient.connect(client_id.c_str(), MQTT::username, MQTT::password))
+        
+        if (mqttClient.connect(client_id.c_str(), MQTT::username, MQTT::password)) 
         {
             Serial.print(client_id);
             Serial.println(" connected");
@@ -58,7 +61,7 @@ void mqttReconnect()
         }
         else
         {
-            Serial.print("MTTT connect failed, rc=");
+            Serial.print("MQTT connect failed, rc=");
             Serial.print(mqttClient.state());
             Serial.println(" try again in 1 seconds");
             delay(1000);
@@ -70,15 +73,17 @@ void setup()
 {
     Serial.begin(115200);
     delay(10);
+
+    // Kết nối Wi-Fi
     setup_wifi(ssid, password);
+
+    // Tích hợp CA Certificate cho kết nối TLS
     tlsClient.setCACert(ca_cert);
 
-    // mqttClient.setKeepAlive(keepAlive); // To see how long mqttClient detects the TCP connection is lost
-    // mqttClient.setSocketTimeout(socketTimeout); // To see how long mqttClient detects the TCP connection is lost
-
+    // Cấu hình MQTT
     mqttClient.setCallback(mqttCallback);
-    mqttClient.setServer(MQTT::broker, MQTT::port);
-    mqttPulishTicker.attach(1, mqttPublish);
+    mqttClient.setServer(mqttBroker, mqttPort); // Sử dụng URL và port của HiveMQ
+    mqttPublishTicker.attach(1, mqttPublish); // Gửi dữ liệu mỗi giây
 }
 
 void loop()
@@ -89,3 +94,4 @@ void loop()
     }
     mqttClient.loop();
 }
+
